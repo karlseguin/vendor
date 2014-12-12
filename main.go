@@ -53,8 +53,23 @@ func vendor(name string, config map[string]interface{}) error {
 	if ok == false {
 		revision = "master"
 	}
-	fmt.Println("reset", name)
-	return gitRun(path, "reset", "--hard", revision)
+	fmt.Println("fetching", name)
+	return gitReset(path, revision, true)
+}
+
+func gitReset(path, revision string, first bool) error {
+	if first == false {
+		if err := gitRun(path, "fetch", "--all"); err != nil {
+			return err
+		}
+	}
+	if err := gitRun(path, "reset", "--hard", revision); err != nil {
+		if first {
+			return gitReset(path, revision, false)
+		}
+		return err
+	}
+	return nil
 }
 
 func gitRun(dir string, args ...string) error {
