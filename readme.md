@@ -15,7 +15,10 @@ Next, create a `vendor.json` file, which should be committed, in the root of you
     "url": "https://github.com/karlseguin/typed.git",
     "revision": "60ea22ece11445c6ca01d44d414b84181144e072"
   },
-  ...
+  "bytepool": {
+    "url": "https://github.com/karlseguin/bytepool.git",
+    "revision": "d858cd4db848fa8f5275b746d57e84571a5c0be1"
+  }
 }
 ```
 
