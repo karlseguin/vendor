@@ -44,6 +44,7 @@ func vendor(name string, config map[string]interface{}) error {
 	root += "/.vendor/"
 	path := root + name
 	if exists(path) == false {
+		fmt.Println("cloning", url)
 		if err := gitRun(root, "clone", url, name); err != nil {
 			return err
 		}
@@ -52,6 +53,7 @@ func vendor(name string, config map[string]interface{}) error {
 	if ok == false {
 		revision = "master"
 	}
+	fmt.Println("reset", name)
 	return gitRun(path, "reset", "--hard", revision)
 }
 
