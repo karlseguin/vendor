@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/karlseguin/vendor/.vendor/typed"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func main() {
@@ -12,16 +14,19 @@ func main() {
 	if err != nil {
 		if os.IsNotExist(err) {
 			fmt.Println("vendor.json file not found, aborting")
-			return
+			os.Exit(1)
 		}
-		panic(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 	os.Mkdir(".vendor", 0700)
 	for name, config := range data {
 		if err := vendor(name, typed.Typed(config.(map[string]interface{}))); err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 	}
+	os.Exit(0)
 }
 
 func vendor(name string, config typed.Typed) error {
@@ -45,9 +50,14 @@ func vendor(name string, config typed.Typed) error {
 }
 
 func gitRun(dir string, args ...string) error {
-	c := exec.Command("git", args...)
-	c.Dir = dir
-	return c.Run()
+	var out bytes.Buffer
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error running git %s:\n  %s", strings.Join(args, " "), out.String())
+	}
+	return nil
 }
 
 func exists(path string) bool {
