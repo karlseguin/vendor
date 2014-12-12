@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/karlseguin/vendor/typed"
+	"github.com/karlseguin/vendor/.vendor/typed"
 	"os"
 	"os/exec"
 )
@@ -16,7 +16,7 @@ func main() {
 		}
 		panic(err)
 	}
-	os.Mkdir("vendor", 0700)
+	os.Mkdir(".vendor", 0700)
 	for name, config := range data {
 		if err := vendor(name, typed.Typed(config.(map[string]interface{}))); err != nil {
 			panic(err)
@@ -33,7 +33,7 @@ func vendor(name string, config typed.Typed) error {
 	if err != nil {
 		return err
 	}
-	root += "/vendor/"
+	root += "/.vendor/"
 	path := root + name
 	if exists(path) == false {
 		if err := gitRun(root, "clone", url, name); err != nil {
