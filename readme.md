@@ -5,7 +5,7 @@ Vendor is meant to be a minimalist solution to managing dependencies in Go. It's
 Vendor currently only works with git.
 
 ## Usage
-First, add `.vendor` do you `.gitignore` file; vendored dependencies should not be committed.
+First, add `.vendor` to you `.gitignore` file; vendored dependencies should not be committed.
 
 Next, create a `vendor.json` file, which should be committed, in the root of your project. It has a simple format:
 
