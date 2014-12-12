@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"./vendor/typed"
+	"github.com/karlseguin/vendor/typed"
 	"os"
 	"os/exec"
 )
