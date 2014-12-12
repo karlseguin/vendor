@@ -2,26 +2,29 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"github.com/karlseguin/vendor/.vendor/typed"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 )
 
 func main() {
-	data, err := typed.JsonFile("vendor.json")
+	contents, err := ioutil.ReadFile("vendor.json")
 	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Println("vendor.json file not found, aborting")
-			os.Exit(1)
-		}
-		fmt.Println(err)
+		fmt.Println("failed to read vendor.json", err)
+		os.Exit(1)
+	}
+	var data map[string]interface{}
+
+	if err := json.Unmarshal(contents, &data); err != nil {
+		fmt.Println("Invalid vendor.json", err)
 		os.Exit(1)
 	}
 	os.Mkdir(".vendor", 0700)
 	for name, config := range data {
-		if err := vendor(name, typed.Typed(config.(map[string]interface{}))); err != nil {
+		if err := vendor(name, config.(map[string]interface{})); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
@@ -29,8 +32,8 @@ func main() {
 	os.Exit(0)
 }
 
-func vendor(name string, config typed.Typed) error {
-	url, ok := config.StringIf("url")
+func vendor(name string, config map[string]interface{}) error {
+	url, ok := config["url"].(string)
 	if ok == false {
 		return fmt.Errorf("%s missing url field", name)
 	}
@@ -45,7 +48,10 @@ func vendor(name string, config typed.Typed) error {
 			return err
 		}
 	}
-	revision := config.StringOr("revision", "master")
+	revision, ok := config["revision"].(string)
+	if ok == false {
+		revision = "master"
+	}
 	return gitRun(path, "reset", "--hard", revision)
 }
 
