@@ -29,6 +29,15 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	files, _  := ioutil.ReadDir(".vendor")
+	for _, file := range files {
+		if file.IsDir() {
+			if _, valid := data[file.Name()]; valid == false {
+				fmt.Println("removing", file.Name())
+				os.RemoveAll(".vendor/" + file.Name())
+			}
+		}
+	}
 	os.Exit(0)
 }
 
