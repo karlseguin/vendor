@@ -10,21 +10,28 @@ import (
 	"strings"
 )
 
+var wd string
+
 func main() {
 	root, err := os.Getwd()
 	if err != nil {
 		fmt.Println("failed to get wordering directory", err)
 		os.Exit(1)
 	}
-	install(root)
+	wd = root + "/.vendor/"
+	install(root, "")
 }
 
-func install(root string) {
+func install(root string, alias string) {
 	config := readConfig(root)
 	root = root + "/.vendor"
 	os.Mkdir(root, 0700)
 	for name, c := range config {
-		vendor(root, name, c.(map[string]interface{}))
+		if alias != "" {
+			alias += "."
+		}
+		alias += name
+		vendor(root, name, alias, c.(map[string]interface{}))
 	}
 	// files, _  := ioutil.ReadDir(root)
 	// for _, file := range files {
@@ -56,7 +63,7 @@ func readConfig(root string) map[string]interface{} {
 	return config
 }
 
-func vendor(root string, name string, config map[string]interface{}) {
+func vendor(root string, name string, alias string, config map[string]interface{}) {
 	url, ok := config["url"].(string)
 	if ok == false {
 		fmt.Printf("%s missing url field in %s/.vendor\n", name, root)
@@ -80,8 +87,8 @@ func vendor(root string, name string, config map[string]interface{}) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	println(target)
-	install(target)
+	link(alias, target)
+	install(target, alias)
 }
 
 func gitReset(path, revision string, first bool) error {
@@ -98,18 +105,6 @@ func gitReset(path, revision string, first bool) error {
 	}
 	return nil
 }
-
-func gitRun(dir string, args ...string) error {
-	var out bytes.Buffer
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	cmd.Stderr = &out
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error running git %s\n  %s", strings.Join(args, " "), out.String())
-	}
-	return nil
-}
-
 func exists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -119,4 +114,23 @@ func exists(path string) bool {
 		return false
 	}
 	return false
+}
+
+func link(alias string, path string) {
+	run(wd, "ln", "-s", path, alias)
+}
+
+func gitRun(dir string, args ...string) error {
+	return run(dir, "git", args...)
+}
+
+func run(dir, command string, args ...string) error {
+	var out bytes.Buffer
+	cmd := exec.Command(command, args...)
+	cmd.Dir = dir
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error running %s %s\n  %s", command, strings.Join(args, " "), out.String())
+	}
+	return nil
 }
