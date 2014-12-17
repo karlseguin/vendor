@@ -110,7 +110,8 @@ func update(root, existing, replacement string) {
 		"-type", "f",
 		"-regex", `.*\.go`,
 		"-not", "-path", `"./.vendor/*"`,
-		"-exec", "sed", "-i", "''", fmt.Sprintf("s#%s#%s#g", existing, replacement), "{}", ";")
+		"-exec", "perl", "-pi", "-e", fmt.Sprintf("s#%s#%s#g", existing, replacement), "{}", ";")
+		// "-exec", "sed", "-i", "''", , "{}", ";")
 }
 
 func gitReset(path, revision string, first bool) error {
