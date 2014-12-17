@@ -1,16 +1,19 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"errors"
 	"strings"
 )
 
-var wd string
+var (
+	wd string
+	rootSelf string
+)
 
 func main() {
 	root, err := os.Getwd()
@@ -20,29 +23,40 @@ func main() {
 	}
 	wd = root + "/.vendor/"
 	install(root, "")
+	os.Exit(0)
 }
 
 func install(root string, alias string) {
 	config := readConfig(root)
-	root = root + "/.vendor"
-	os.Mkdir(root, 0700)
+	installRoot := root + "/.vendor"
+	os.Mkdir(installRoot, 0700)
+
+	if len(config) == 0 {
+		return
+	}
+
+	self := config["."].(string)
+	if len(self) == 0 {
+		fmt.Printf("%s/vendor.json should have a self (.) entry\n", root)
+		os.Exit(1)
+	}
+	isRoot := false
+	if len(rootSelf) == 0 {
+		rootSelf = self
+		isRoot = true
+	}
+	delete(config, ".")
+
 	for name, c := range config {
 		if alias != "" {
 			alias += "."
 		}
-		alias += name
-		vendor(root, name, alias, c.(map[string]interface{}))
+		vendorAlias :=  alias + name
+		vendor(installRoot, self, name, vendorAlias, c.(map[string]interface{}))
+		if isRoot == false {
+			update(root, self, rootSelf + alias)
+		}
 	}
-	// files, _  := ioutil.ReadDir(root)
-	// for _, file := range files {
-	// 	if file.IsDir() {
-	// 		if _, valid := data[file.Name()]; valid == false {
-	// 			fmt.Println("removing", file.Name())
-	// 			os.RemoveAll(root + file.Name())
-	// 		}
-	// 	}
-	// }
-	// os.Exit(0)
 }
 
 func readConfig(root string) map[string]interface{} {
@@ -50,7 +64,7 @@ func readConfig(root string) map[string]interface{} {
 	contents, err := ioutil.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
-			os.Exit(0)
+			return nil
 		}
 		fmt.Printf("failed to read %s %v\n", file, err)
 		os.Exit(1)
@@ -63,7 +77,7 @@ func readConfig(root string) map[string]interface{} {
 	return config
 }
 
-func vendor(root string, name string, alias string, config map[string]interface{}) {
+func vendor(root, self, name, alias string, config map[string]interface{}) {
 	url, ok := config["url"].(string)
 	if ok == false {
 		fmt.Printf("%s missing url field in %s/.vendor\n", name, root)
@@ -72,7 +86,6 @@ func vendor(root string, name string, alias string, config map[string]interface{
 
 	target := root + "/" + name
 	if exists(target) == false {
-		fmt.Println("cloning", url)
 		if err := gitRun(root, "clone", url, name); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -82,13 +95,22 @@ func vendor(root string, name string, alias string, config map[string]interface{
 	if ok == false {
 		revision = "master"
 	}
-	fmt.Println("fetching", name)
 	if err := gitReset(target, revision, true); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	link(alias, target)
 	install(target, alias)
+	if strings.Index(alias, ".") != -1 {
+		link(alias, target)
+	}
+}
+
+func update(root, existing, replacement string) {
+	run(root, "find", ".",
+		"-type", "f",
+		"-regex", `.*\.go`,
+		"-not", "-path", `"./.vendor/*"`,
+		"-exec", "sed", "-i", "''", fmt.Sprintf("s#%s#%s#g", existing, replacement), "{}", ";")
 }
 
 func gitReset(path, revision string, first bool) error {
@@ -125,12 +147,17 @@ func gitRun(dir string, args ...string) error {
 }
 
 func run(dir, command string, args ...string) error {
-	var out bytes.Buffer
 	cmd := exec.Command(command, args...)
 	cmd.Dir = dir
-	cmd.Stderr = &out
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error running %s %s\n  %s", command, strings.Join(args, " "), out.String())
+	fmt.Print(strings.Replace(dir, wd, ".vendor/", -1), " ", command)
+	for _, arg := range args {
+		fmt.Print(" " + strings.Replace(arg, wd, ".vendor/", -1))
 	}
+	fmt.Println()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.New(string(out))
+	}
+	fmt.Println(string(out))
 	return nil
 }
