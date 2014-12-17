@@ -80,6 +80,7 @@ func vendor(root string, name string, config map[string]interface{}) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	println(target)
 	install(target)
 }
 
