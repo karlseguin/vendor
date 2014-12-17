@@ -1,8 +1,6 @@
 # Go Package Vendoring
 
-Vendor is meant to be a minimalist solution to managing dependencies in Go. It's similar to npm in that dependencies are stored within the project itself.
-
-Vendor currently only works with git.
+You probably shouldn't use this.
 
 ## Usage
 First, add `.vendor` to you `.gitignore` file; vendored dependencies should not be committed.
@@ -11,6 +9,7 @@ Next, create a `vendor.json` file, which should be committed, in the root of you
 
 ```json
 {
+  ".": "IMPORT OF CURRENT PROJECT",
   "typed": {
     "url": "https://github.com/karlseguin/typed.git",
     "revision": "60ea22ece11445c6ca01d44d414b84181144e072"
